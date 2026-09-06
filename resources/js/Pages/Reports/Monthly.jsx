@@ -13,7 +13,14 @@ import {
     Archive
 } from 'lucide-react';
 
-export default function MonthlyReportIndex({ auth, reportData = [], academicYears = [], meta = {} }) {
+export default function MonthlyReportIndex({ auth, reportData = [], academicYears = [], classes = [], meta = {} }) {
+    const classList = classes && classes.length > 0 ? classes : (meta.available_classes || meta.classes || [
+        '7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8', '7.9', '7.10',
+        '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7', '8.8', '8.9', '8.10',
+        '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7', '9.8', '9.9', '9.10',
+        'VII-A', 'VII-B', 'VII-C', 'VIII-A', 'VIII-B', 'VIII-C', 'IX-A', 'IX-B', 'IX-C',
+    ]);
+
     const [selectedAcademicYear, setSelectedAcademicYear] = useState(meta.academic_year_id?.toString() || '');
     const [selectedMonth, setSelectedMonth] = useState(meta.month?.toString() || '1');
     const [selectedYear, setSelectedYear] = useState(meta.year?.toString() || '2025');
@@ -201,18 +208,13 @@ export default function MonthlyReportIndex({ auth, reportData = [], academicYear
                             <select
                                 value={selectedClass}
                                 onChange={onClassChange}
+                                aria-label="Pilih Kelas"
                                 className="w-full py-1.5 px-3 text-xs rounded-lg border-madrasah-border bg-stone-50 font-semibold"
                             >
-                                <option value="ALL">Semua Kelas (VII, VIII, IX)</option>
-                                <option value="VII-A">VII-A</option>
-                                <option value="VII-B">VII-B</option>
-                                <option value="VII-C">VII-C</option>
-                                <option value="VIII-A">VIII-A</option>
-                                <option value="VIII-B">VIII-B</option>
-                                <option value="VIII-C">VIII-C</option>
-                                <option value="IX-A">IX-A</option>
-                                <option value="IX-B">IX-B</option>
-                                <option value="IX-C">IX-C</option>
+                                <option value="ALL">Semua Kelas</option>
+                                {classList.map((cls) => (
+                                    <option key={cls} value={cls}>Kelas {cls}</option>
+                                ))}
                             </select>
                         </div>
 

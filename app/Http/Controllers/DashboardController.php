@@ -67,6 +67,30 @@ class DashboardController extends Controller
             'late_tolerance_minutes' => $activeYear?->late_tolerance_minutes ?? 15,
         ];
 
+        $existingClasses = Student::active()
+            ->when($activeYear, function ($q) use ($activeYear) {
+                $q->whereHas('studentAcademicYears', function ($sq) use ($activeYear) {
+                    $sq->where('academic_year_id', $activeYear->id);
+                });
+            })
+            ->select('grade')
+            ->distinct()
+            ->pluck('grade')
+            ->filter()
+            ->values()
+            ->toArray();
+
+        $defaultClasses = [
+            '7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8', '7.9', '7.10',
+            '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7', '8.8', '8.9', '8.10',
+            '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7', '9.8', '9.9', '9.10',
+            'VII-A', 'VII-B', 'VII-C', 'VIII-A', 'VIII-B', 'VIII-C', 'IX-A', 'IX-B', 'IX-C',
+        ];
+
+        $availableClasses = array_values(array_unique(array_merge($existingClasses, $defaultClasses)));
+        natsort($availableClasses);
+        $availableClasses = array_values($availableClasses);
+
         $payload = [
             'total_students' => $totalStudents,
             'total_present' => $totalHadir,
@@ -76,6 +100,7 @@ class DashboardController extends Controller
             'recent_scans' => $recentScans,
             'presence_window' => $presenceWindow,
             'academic_year' => $activeYear?->name ?? '2025/2026',
+            'available_classes' => $availableClasses,
         ];
 
         if ($request->wantsJson()) {
@@ -88,6 +113,7 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard/Index', [
             'stats' => $payload,
             'initialScans' => $recentScans,
+            'availableClasses' => $availableClasses,
         ]);
     }
 

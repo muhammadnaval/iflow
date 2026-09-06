@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\Student;
 use App\Services\ReportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +34,30 @@ class ReportController extends Controller
             ];
         });
 
+        $existingClasses = Student::query()
+            ->when($academicYearId, function ($q) use ($academicYearId) {
+                $q->whereHas('studentAcademicYears', function ($sq) use ($academicYearId) {
+                    $sq->where('academic_year_id', $academicYearId);
+                });
+            })
+            ->select('grade')
+            ->distinct()
+            ->pluck('grade')
+            ->filter()
+            ->values()
+            ->toArray();
+
+        $defaultClasses = [
+            '7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8', '7.9', '7.10',
+            '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7', '8.8', '8.9', '8.10',
+            '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7', '9.8', '9.9', '9.10',
+            'VII-A', 'VII-B', 'VII-C', 'VIII-A', 'VIII-B', 'VIII-C', 'IX-A', 'IX-B', 'IX-C',
+        ];
+
+        $classes = array_values(array_unique(array_merge($existingClasses, $defaultClasses)));
+        natsort($classes);
+        $classes = array_values($classes);
+
         $report = $this->reportService->getMonthlyReport($month, $year, $grade, $academicYearId);
 
         if ($request->wantsJson()) {
@@ -46,6 +71,7 @@ class ReportController extends Controller
                     'academic_year_id' => $report['academic_year_id'],
                     'academic_year_name' => $report['academic_year_name'],
                     'total_school_days' => $report['effective_days'],
+                    'classes' => $classes,
                 ],
             ]);
         }
@@ -53,6 +79,7 @@ class ReportController extends Controller
         return Inertia::render('Reports/Monthly', [
             'reportData' => $report['data'],
             'academicYears' => $academicYears,
+            'classes' => $classes,
             'meta' => [
                 'month' => $report['month'],
                 'year' => $report['year'],
@@ -62,6 +89,7 @@ class ReportController extends Controller
                 'effective_days' => $report['effective_days'],
                 'total_students' => $report['total_students'],
                 'avg_percentage' => $report['avg_percentage'],
+                'available_classes' => $classes,
             ],
         ]);
     }

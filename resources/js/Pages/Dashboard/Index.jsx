@@ -21,9 +21,18 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-export default function Dashboard({ auth, stats, initialScans = [] }) {
+export default function Dashboard({ auth, stats, initialScans = [], availableClasses = [] }) {
     const userRole = (auth?.user?.role || 'admin').toLowerCase();
     const canEditAttendance = ['admin', 'petugas'].includes(userRole);
+
+    const classOptions = availableClasses?.length > 0
+        ? availableClasses
+        : (stats?.available_classes?.length > 0 ? stats.available_classes : [
+            '7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8', '7.9', '7.10',
+            '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7', '8.8', '8.9', '8.10',
+            '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7', '9.8', '9.9', '9.10',
+            'VII-A', 'VII-B', 'VII-C', 'VIII-A', 'VIII-B', 'VIII-C', 'IX-A', 'IX-B', 'IX-C',
+        ]);
 
     // Stats & Scans State from Database
     const [currentStats, setCurrentStats] = useState(stats || {
@@ -320,18 +329,13 @@ export default function Dashboard({ auth, stats, initialScans = [] }) {
                                 <select
                                     value={selectedClass}
                                     onChange={(e) => setSelectedClass(e.target.value)}
-                                    className="py-1 px-2.5 text-xs rounded-lg border-madrasah-border focus:border-brand-primary focus:ring-brand-primary bg-stone-50"
+                                    aria-label="Filter Kelas"
+                                    className="py-1 px-2.5 text-xs rounded-lg border-madrasah-border focus:border-brand-primary focus:ring-brand-primary bg-stone-50 font-medium"
                                 >
                                     <option value="ALL">Semua Kelas</option>
-                                    <option value="VII-A">VII-A</option>
-                                    <option value="VII-B">VII-B</option>
-                                    <option value="VII-C">VII-C</option>
-                                    <option value="VIII-A">VIII-A</option>
-                                    <option value="VIII-B">VIII-B</option>
-                                    <option value="VIII-C">VIII-C</option>
-                                    <option value="IX-A">IX-A</option>
-                                    <option value="IX-B">IX-B</option>
-                                    <option value="IX-C">IX-C</option>
+                                    {classOptions.map((cls) => (
+                                        <option key={cls} value={cls}>{cls}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
