@@ -21,9 +21,15 @@ import {
     Pencil
 } from 'lucide-react';
 
-const AVAILABLE_CLASSES = ['VII-A', 'VII-B', 'VII-C', 'VIII-A', 'VIII-B', 'VIII-C', 'IX-A', 'IX-B', 'IX-C'];
+const DEFAULT_AVAILABLE_CLASSES = [
+    '7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8', '7.9', '7.10',
+    '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7', '8.8', '8.9', '8.10',
+    '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7', '9.8', '9.9', '9.10',
+    'VII-A', 'VII-B', 'VII-C', 'VIII-A', 'VIII-B', 'VIII-C', 'IX-A', 'IX-B', 'IX-C'
+];
 
-export default function UsersIndex({ auth, usersList = [] }) {
+export default function UsersIndex({ auth, usersList = [], availableClasses }) {
+    const classList = availableClasses && availableClasses.length > 0 ? availableClasses : DEFAULT_AVAILABLE_CLASSES;
     const [searchQuery, setSearchQuery] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
     
@@ -449,18 +455,18 @@ export default function UsersIndex({ auth, usersList = [] }) {
                                         <button
                                             type="button"
                                             onClick={() => setFormAssignedClasses(
-                                                formAssignedClasses.length === AVAILABLE_CLASSES.length ? [] : [...AVAILABLE_CLASSES]
+                                                formAssignedClasses.length === classList.length ? [] : [...classList]
                                             )}
                                             className="text-[10px] font-bold text-brand-primary hover:underline"
                                         >
-                                            {formAssignedClasses.length === AVAILABLE_CLASSES.length ? 'Kosongkan' : 'Pilih Semua'}
+                                            {formAssignedClasses.length === classList.length ? 'Kosongkan' : 'Pilih Semua'}
                                         </button>
                                     </div>
                                     <p className="text-[11px] text-stone-500">
                                         Pilih kelas yang boleh dipindai oleh petugas ini. Jika dikosongkan, petugas dapat memindai semua kelas.
                                     </p>
-                                    <div className="grid grid-cols-3 gap-1.5 pt-1">
-                                        {AVAILABLE_CLASSES.map((cls) => {
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1 max-h-48 overflow-y-auto p-1 border border-stone-200 rounded-lg">
+                                        {classList.map((cls) => {
                                             const isChecked = formAssignedClasses.includes(cls);
                                             return (
                                                 <label
@@ -610,18 +616,18 @@ export default function UsersIndex({ auth, usersList = [] }) {
                                         <button
                                             type="button"
                                             onClick={() => setEditFormAssignedClasses(
-                                                editFormAssignedClasses.length === AVAILABLE_CLASSES.length ? [] : [...AVAILABLE_CLASSES]
+                                                editFormAssignedClasses.length === classList.length ? [] : [...classList]
                                             )}
                                             className="text-[10px] font-bold text-brand-primary hover:underline"
                                         >
-                                            {editFormAssignedClasses.length === AVAILABLE_CLASSES.length ? 'Kosongkan' : 'Pilih Semua'}
+                                            {editFormAssignedClasses.length === classList.length ? 'Kosongkan' : 'Pilih Semua'}
                                         </button>
                                     </div>
                                     <p className="text-[11px] text-stone-500">
                                         Pilih kelas yang boleh dipindai oleh petugas ini. Jika dikosongkan, petugas dapat memindai semua kelas.
                                     </p>
-                                    <div className="grid grid-cols-3 gap-1.5 pt-1">
-                                        {AVAILABLE_CLASSES.map((cls) => {
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1 max-h-48 overflow-y-auto p-1 border border-stone-200 rounded-lg">
+                                        {classList.map((cls) => {
                                             const isChecked = editFormAssignedClasses.includes(cls);
                                             return (
                                                 <label

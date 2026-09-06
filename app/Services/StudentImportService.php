@@ -13,6 +13,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -100,9 +101,9 @@ class StudentImportService
                 $rowErrors[] = 'Nama lengkap wajib diisi minimal 3 karakter';
             }
 
-            // 3. Class Grade validation (e.g. VII-A, VIII-B, IX-C)
-            if ($grade === '' || ! preg_match('/^(VII|VIII|IX)-[A-Z0-9]+$/i', $grade)) {
-                $rowErrors[] = "Format kelas [{$grade}] tidak valid (Gunakan pola VII-A s.d IX-Z)";
+            // 3. Class Grade validation (e.g. 7.1, 8.1, 9.1, VII-A, VIII-B, IX-C)
+            if ($grade === '' || ! preg_match('/^(7|8|9|VII|VIII|IX)[-._\s]?[A-Z0-9]+$/i', $grade)) {
+                $rowErrors[] = "Format kelas [{$grade}] tidak valid (Gunakan pola 7.1 s.d 9.12 atau VII-A s.d IX-Z)";
             }
 
             // 4. Gender validation (L or P)
@@ -238,18 +239,23 @@ class StudentImportService
 
         // Add Sample Rows
         $sampleData = [
-            ['0078123451', 'Ahmad Fauzi Ridwan', 'VII-A', 'L'],
-            ['0078123452', 'Aisyah Putri Rahmadani', 'VII-A', 'P'],
-            ['0078123453', 'Bintang Pratama', 'VII-B', 'L'],
-            ['0078123454', 'Chairunnisa Azzahra', 'VIII-A', 'P'],
-            ['0078123455', 'Daffa Raihan Alfarizi', 'IX-A', 'L'],
+            ['0078123451', 'Ahmad Fauzi Ridwan', '7.1', 'L'],
+            ['0078123452', 'Aisyah Putri Rahmadani', '7.1', 'P'],
+            ['0078123453', 'Bintang Pratama', '7.2', 'L'],
+            ['0078123454', 'Chairunnisa Azzahra', '8.1', 'P'],
+            ['0078123455', 'Daffa Raihan Alfarizi', '9.1', 'L'],
         ];
         $sheet->fromArray($sampleData, null, 'A2');
 
-        // Explicit string format for NISN column (Column A)
+        // Explicit string format for NISN column (Column A) and KELAS column (Column C)
         for ($r = 2; $r <= 6; $r++) {
             $sheet->getCell("A{$r}")->setValueExplicit($sampleData[$r - 2][0], DataType::TYPE_STRING);
+            $sheet->getCell("C{$r}")->setValueExplicit($sampleData[$r - 2][2], DataType::TYPE_STRING);
         }
+
+        // Ensure Column A & C are formatted as text
+        $sheet->getStyle('A:A')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+        $sheet->getStyle('C:C')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
 
         // Auto size columns
         foreach (range('A', 'D') as $col) {

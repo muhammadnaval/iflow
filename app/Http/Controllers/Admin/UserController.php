@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Student;
 use App\Models\User;
 use App\Services\UserImportService;
 use Illuminate\Http\JsonResponse;
@@ -43,8 +44,24 @@ class UserController extends Controller
                 ];
             });
 
+        $existingClasses = Student::select('grade')
+            ->distinct()
+            ->orderBy('grade')
+            ->pluck('grade')
+            ->toArray();
+
+        $defaultClasses = [
+            '7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8', '7.9', '7.10',
+            '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7', '8.8', '8.9', '8.10',
+            '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7', '9.8', '9.9', '9.10',
+            'VII-A', 'VII-B', 'VII-C', 'VIII-A', 'VIII-B', 'VIII-C', 'IX-A', 'IX-B', 'IX-C',
+        ];
+
+        $availableClasses = array_values(array_unique(array_merge($existingClasses, $defaultClasses)));
+
         return Inertia::render('Users/Index', [
             'usersList' => $users,
+            'availableClasses' => $availableClasses,
         ]);
     }
 

@@ -161,6 +161,9 @@ export default function ImportIndex({ auth, activeYear }) {
                                     <p className="text-xs text-stone-600">
                                         Unduh format resmi kolom: NISN, NAMA_LENGKAP, KELAS, JENIS_KELAMIN.
                                     </p>
+                                    <p className="text-[11px] text-stone-500 mt-0.5">
+                                        Format kelas yang didukung: <b>7.1 s.d 9.12</b> (contoh: 7.1, 8.1, 9.1) atau Romawi (VII-A, VIII-B, IX-C).
+                                    </p>
                                 </div>
                             </div>
                             <button
