@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export default function AuthenticatedLayout({ header, children, currentPresenceWindow }) {
-    const { auth, url } = usePage().props;
+    const { auth, activeAcademicYear, url } = usePage().props;
     const user = auth?.user || { name: 'Administrator', email: 'admin@mtsn3padang.sch.id', role: 'admin' };
     const role = (user.role || 'admin').toLowerCase();
 
@@ -32,6 +32,28 @@ export default function AuthenticatedLayout({ header, children, currentPresenceW
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    // Presence Window & Real-time Status
+    const startTimeStr = currentPresenceWindow?.start_time || activeAcademicYear?.presence_start_time || '11:45';
+    const endTimeStr = currentPresenceWindow?.end_time || activeAcademicYear?.presence_end_time || '12:30';
+    const academicYearName = activeAcademicYear?.name || '2025/2026';
+    const timeWindowFormatted = `${startTimeStr.replace(':', '.')} – ${endTimeStr.replace(':', '.')} WIB`;
+
+    // Calculate real-time presence status: 'NOT_OPEN' | 'OPEN' | 'CLOSED'
+    const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const [startH, startM] = startTimeStr.split(':').map(Number);
+    const [endH, endM] = endTimeStr.split(':').map(Number);
+    const startMinutes = (isNaN(startH) ? 11 : startH) * 60 + (isNaN(startM) ? 45 : startM);
+    const endMinutes = (isNaN(endH) ? 12 : endH) * 60 + (isNaN(endM) ? 30 : endM);
+
+    let statusType = 'OPEN';
+    if (currentMinutes < startMinutes) {
+        statusType = 'NOT_OPEN';
+    } else if (currentMinutes > endMinutes) {
+        statusType = 'CLOSED';
+    } else {
+        statusType = 'OPEN';
+    }
 
     // Format Indonesian Date & Time
     const formattedDate = currentTime.toLocaleDateString('id-ID', {
@@ -156,17 +178,40 @@ export default function AuthenticatedLayout({ header, children, currentPresenceW
                     </div>
 
                     {/* Center: Live Time Window Status (Desktop) */}
-                    <div className="hidden md:flex items-center gap-4 bg-brand-50/60 border border-brand-200/80 rounded-full px-4 py-1.5 text-xs text-brand-primary">
+                    <div className={`hidden md:flex items-center gap-3 border rounded-full px-3.5 py-1 text-xs transition-colors ${
+                        statusType === 'OPEN'
+                            ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900'
+                            : statusType === 'NOT_OPEN'
+                            ? 'bg-amber-50/70 border-amber-300 text-amber-900'
+                            : 'bg-stone-50 border-stone-200 text-stone-600'
+                    }`}>
                         <div className="flex items-center gap-1.5 font-semibold">
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                {statusType === 'OPEN' ? (
+                                    <>
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </>
+                                ) : statusType === 'NOT_OPEN' ? (
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                ) : (
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-stone-400"></span>
+                                )}
                             </span>
-                            <span>Presensi Dzuhur: 11.45 – 12.30 WIB</span>
+                            <span>Presensi Dzuhur: {timeWindowFormatted}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                                statusType === 'OPEN'
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : statusType === 'NOT_OPEN'
+                                    ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                    : 'bg-stone-200/80 text-stone-600 border-stone-300'
+                            }`}>
+                                {statusType === 'OPEN' ? 'Buka' : statusType === 'NOT_OPEN' ? 'Belum Buka' : 'Selesai'}
+                            </span>
                         </div>
-                        <div className="h-3 w-px bg-brand-200"></div>
+                        <div className="h-3 w-px bg-stone-300"></div>
                         <div className="flex items-center gap-1 font-mono text-stone-700 font-medium">
-                            <Clock className="w-3.5 h-3.5 text-brand-primary" />
+                            <Clock className={`w-3.5 h-3.5 ${statusType === 'OPEN' ? 'text-emerald-700' : statusType === 'NOT_OPEN' ? 'text-amber-700' : 'text-stone-500'}`} />
                             <span>{formattedTime}</span>
                         </div>
                     </div>
@@ -238,8 +283,20 @@ export default function AuthenticatedLayout({ header, children, currentPresenceW
                         <div className="mt-4 pt-3 border-t border-madrasah-border px-3 py-2 bg-stone-50 rounded-lg text-xs">
                             <div className="text-madrasah-muted font-medium text-[11px]">Tahun Ajaran Aktif</div>
                             <div className="font-bold text-brand-primary text-sm flex items-center justify-between mt-0.5">
-                                <span>2025/2026</span>
+                                <span>{academicYearName}</span>
                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">Aktif</span>
+                            </div>
+                            <div className="text-[11px] text-stone-500 mt-1.5 flex items-center justify-between">
+                                <span>Dzuhur: {timeWindowFormatted}</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                    statusType === 'OPEN'
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : statusType === 'NOT_OPEN'
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-stone-200 text-stone-600'
+                                }`}>
+                                    {statusType === 'OPEN' ? 'Buka' : statusType === 'NOT_OPEN' ? 'Belum Buka' : 'Selesai'}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -288,8 +345,28 @@ export default function AuthenticatedLayout({ header, children, currentPresenceW
                                 </nav>
                             </div>
 
-                            <div className="pt-4 border-t border-madrasah-border">
-                                <div className="text-xs text-madrasah-muted mb-2">
+                            <div className="pt-4 border-t border-madrasah-border space-y-3">
+                                <div className="px-3 py-2 bg-stone-50 rounded-lg text-xs border border-stone-200">
+                                    <div className="text-madrasah-muted font-medium text-[11px]">Tahun Ajaran Aktif</div>
+                                    <div className="font-bold text-brand-primary text-sm flex items-center justify-between mt-0.5">
+                                        <span>{academicYearName}</span>
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">Aktif</span>
+                                    </div>
+                                    <div className="text-[11px] text-stone-500 mt-1.5 flex items-center justify-between">
+                                        <span>Dzuhur: {timeWindowFormatted}</span>
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                            statusType === 'OPEN'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : statusType === 'NOT_OPEN'
+                                                ? 'bg-amber-100 text-amber-700'
+                                                : 'bg-stone-200 text-stone-600'
+                                        }`}>
+                                            {statusType === 'OPEN' ? 'Buka' : statusType === 'NOT_OPEN' ? 'Belum Buka' : 'Selesai'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="text-xs text-madrasah-muted">
                                     Masuk sebagai: <b className="text-madrasah-fg">{user.name}</b>
                                 </div>
                                 <Link

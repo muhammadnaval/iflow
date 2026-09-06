@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AcademicYear;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +43,24 @@ class HandleInertiaRequests extends Middleware
                     'assigned_classes' => $user->assigned_classes ?? [],
                 ] : null,
             ],
+            'activeAcademicYear' => function () {
+                try {
+                    $active = AcademicYear::active()->first();
+                    if (! $active) {
+                        return null;
+                    }
+
+                    return [
+                        'id' => $active->id,
+                        'name' => $active->name,
+                        'presence_start_time' => substr((string) $active->presence_start_time, 0, 5),
+                        'presence_end_time' => substr((string) $active->presence_end_time, 0, 5),
+                        'late_tolerance_minutes' => (int) $active->late_tolerance_minutes,
+                    ];
+                } catch (\Throwable) {
+                    return null;
+                }
+            },
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
