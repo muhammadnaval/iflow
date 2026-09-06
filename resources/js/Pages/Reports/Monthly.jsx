@@ -239,9 +239,9 @@ export default function MonthlyReportIndex({ auth, reportData = [], academicYear
                 {/* Summary Banner */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div className="p-3.5 rounded-xl bg-white border border-madrasah-border shadow-2xs">
-                        <div className="text-[10px] font-bold text-madrasah-muted uppercase">Hari Efektif Sekolah</div>
+                        <div className="text-[10px] font-bold text-madrasah-muted uppercase">Hari Efektif Sekolah (Senin–Kamis)</div>
                         <div className="font-mono text-xl font-extrabold text-brand-primary mt-1">
-                            {meta.effective_days || 22} <span className="text-xs font-sans font-normal text-stone-500">Hari</span>
+                            {meta.effective_days || 18} <span className="text-xs font-sans font-normal text-stone-500">Hari</span>
                         </div>
                     </div>
 
@@ -338,7 +338,7 @@ export default function MonthlyReportIndex({ auth, reportData = [], academicYear
                     <div className="bg-stone-50 px-4 py-3 border-t border-madrasah-border flex flex-col sm:flex-row items-center justify-between text-xs text-madrasah-muted gap-2">
                         <span>Menampilkan {filteredReports.length} dari {reportData.length} siswa pada Tahun Ajaran {activeYearName}</span>
                         <span className="text-[11px] font-medium">
-                            * Persentase dihitung dari: (Total Hadir + Terlambat) / {meta.effective_days || 22} Hari Efektif
+                            * Persentase dihitung dari: (Total Hadir + Terlambat) / {meta.effective_days || 18} Hari Efektif (Senin–Kamis)
                         </span>
                     </div>
                 </div>

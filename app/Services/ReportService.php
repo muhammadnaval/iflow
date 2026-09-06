@@ -25,19 +25,20 @@ class ReportService
             ? AcademicYear::find($academicYearId)
             : (AcademicYear::active()->first() ?? AcademicYear::first());
 
-        // Calculate Effective School Days (Monday-Friday) in given month & year
+        // Calculate Effective School Days for Dzuhur prayer (Monday-Thursday only) in given month & year
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endOfMonth = (clone $startOfMonth)->endOfMonth();
         $currentDate = (clone $startOfMonth);
 
-        $effectiveDays = 0;
+        $effectiveDates = [];
         while ($currentDate->lte($endOfMonth)) {
-            if ($currentDate->isWeekday()) {
-                $effectiveDays++;
+            // Monday = 1, Tuesday = 2, Wednesday = 3, Thursday = 4 (Friday excluded for Friday prayer)
+            if ($currentDate->dayOfWeekIso >= 1 && $currentDate->dayOfWeekIso <= 4) {
+                $effectiveDates[] = $currentDate->format('Y-m-d');
             }
             $currentDate->addDay();
         }
-        $effectiveDays = max(1, $effectiveDays);
+        $effectiveDays = max(1, count($effectiveDates));
 
         // Fetch students query (including archived historical students for this academic year)
         $studentsQuery = Student::query();
@@ -59,7 +60,7 @@ class ReportService
 
         $students = $studentsQuery->orderBy('grade')->orderBy('full_name')->get();
 
-        // Fetch attendance logs for this month, year, and academic year
+        // Fetch attendance logs strictly on Monday-Thursday for this month, year, and academic year
         $logsQuery = AttendanceLog::whereYear('attendance_date', $year)
             ->whereMonth('attendance_date', $month)
             ->whereIn('student_id', $students->pluck('id'));
@@ -68,7 +69,13 @@ class ReportService
             $logsQuery->where('academic_year_id', $targetYear->id);
         }
 
-        $logs = $logsQuery->get()->groupBy('student_id');
+        $logs = $logsQuery->get()
+            ->filter(function ($log) {
+                $dayOfWeek = Carbon::parse($log->attendance_date)->dayOfWeekIso;
+
+                return $dayOfWeek >= 1 && $dayOfWeek <= 4;
+            })
+            ->groupBy('student_id');
 
         $reportData = [];
         $totalHadirAccumulator = 0;
@@ -135,7 +142,7 @@ class ReportService
         // Title Block
         $sheet->setCellValue('A1', 'REKAPITULASI PRESENSI SHALAT DZUHUR BERJAMAAH');
         $sheet->setCellValue('A2', 'MTsN 3 KOTA PADANG — PERIODE: '.strtoupper($monthName)." {$year}");
-        $sheet->setCellValue('A3', 'Filter Kelas: '.($grade ?: 'Semua Kelas')." | Hari Efektif: {$report['effective_days']} Hari");
+        $sheet->setCellValue('A3', 'Filter Kelas: '.($grade ?: 'Semua Kelas')." | Hari Efektif (Senin–Kamis): {$report['effective_days']} Hari");
         $sheet->getStyle('A1:A3')->getFont()->setBold(true);
 
         // Table Headers
