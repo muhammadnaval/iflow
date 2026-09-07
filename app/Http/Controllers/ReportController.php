@@ -58,12 +58,15 @@ class ReportController extends Controller
         natsort($classes);
         $classes = array_values($classes);
 
+        $activeTab = $request->input('tab', 'students');
         $report = $this->reportService->getMonthlyReport($month, $year, $grade, $academicYearId);
+        $officerReport = $this->reportService->getMonthlyOfficerReport($month, $year, $academicYearId);
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'data' => $report['data'],
+                'officer_data' => $officerReport['data'],
                 'meta' => [
                     'month' => $report['month'],
                     'year' => $report['year'],
@@ -73,11 +76,25 @@ class ReportController extends Controller
                     'total_school_days' => $report['effective_days'],
                     'classes' => $classes,
                 ],
+                'officer_meta' => [
+                    'total_officers' => $officerReport['total_officers'],
+                    'total_scans' => $officerReport['total_scans'],
+                    'avg_scans_per_officer' => $officerReport['avg_scans_per_officer'],
+                    'most_active_officer' => $officerReport['most_active_officer'],
+                ],
             ]);
         }
 
         return Inertia::render('Reports/Monthly', [
             'reportData' => $report['data'],
+            'officerReportData' => $officerReport['data'],
+            'officerMeta' => [
+                'total_officers' => $officerReport['total_officers'],
+                'total_scans' => $officerReport['total_scans'],
+                'avg_scans_per_officer' => $officerReport['avg_scans_per_officer'],
+                'most_active_officer' => $officerReport['most_active_officer'],
+            ],
+            'activeTab' => $activeTab,
             'academicYears' => $academicYears,
             'classes' => $classes,
             'meta' => [
@@ -105,5 +122,17 @@ class ReportController extends Controller
         $academicYearId = $request->input('academic_year_id') ? (int) $request->input('academic_year_id') : null;
 
         return $this->reportService->exportMonthlyExcel($month, $year, $grade, $academicYearId);
+    }
+
+    /**
+     * Export Monthly Officer Performance to Excel (.xlsx).
+     */
+    public function exportOfficerExcel(Request $request): StreamedResponse
+    {
+        $month = (int) $request->input('month', Carbon::now()->month);
+        $year = (int) $request->input('year', Carbon::now()->year);
+        $academicYearId = $request->input('academic_year_id') ? (int) $request->input('academic_year_id') : null;
+
+        return $this->reportService->exportMonthlyOfficerExcel($month, $year, $academicYearId);
     }
 }

@@ -322,6 +322,9 @@ export default function ScanIndex({ auth, students = [], presenceWindow }) {
                                             <span>Kelas: <b className="text-white">{(lastResult.data?.student || lastResult.student).grade}</b></span>
                                             <span>NISN: <b className="font-mono text-white">{(lastResult.data?.student || lastResult.student).nisn}</b></span>
                                         </div>
+                                        <div className="mt-1 text-[11px] text-stone-300 font-medium">
+                                            Tercatat oleh: <span className="text-emerald-300 font-semibold">{lastResult.data?.scanned_by || auth?.user?.name || 'Petugas Piket'}</span>
+                                        </div>
                                         {lastResult.status === 'WRONG_CLASS' && (
                                             <div className="mt-2 text-xs font-semibold text-rose-250 bg-rose-900/70 p-2 rounded-lg border border-rose-700/60 text-rose-100">
                                                 ⚠️ {lastResult.message}

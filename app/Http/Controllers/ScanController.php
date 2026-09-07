@@ -52,7 +52,7 @@ class ScanController extends Controller
             'nisn' => 'required|string',
         ]);
 
-        $userId = $request->user()?->id ?? 2; // Default to officer if demo session
+        $userId = $request->user()?->id ?? 1;
 
         $result = $this->presenceService->recordPresence(
             rawNisn: $request->input('nisn'),

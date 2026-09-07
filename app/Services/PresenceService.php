@@ -178,6 +178,7 @@ class PresenceService
                 ],
                 'status' => $status,
                 'scanned_at' => $scannedAtTime,
+                'scanned_by' => $scannerUser?->name ?? 'Petugas Piket',
                 'reject_reason' => $rejectReason,
             ],
         ];

@@ -64,12 +64,26 @@ test.describe('Admin Modules & Reporting Flow', () => {
     await expect(page.getByText('Total Siswa Terdaftar')).toBeVisible();
 
     // Verify export buttons
-    await expect(page.getByRole('button', { name: /Ekspor Excel/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Ekspor Excel Siswa/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Cetak Laporan/i })).toBeVisible();
 
-    // Verify table records
+    // Verify student table records
     const rows = page.locator('table tbody tr');
     expect(await rows.count()).toBeGreaterThan(0);
+
+    // Switch to Officer Performance Tab
+    await page.getByRole('button', { name: /Rekap Kinerja Petugas Piket/i }).click();
+    await expect(page.getByText('Total Petugas')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Ekspor Excel Petugas/i })).toBeVisible();
+
+    // Verify officer table headers
+    await expect(page.getByRole('columnheader', { name: /Nama Petugas/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Kelas Penugasan/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Total Siswa Discan/i })).toBeVisible();
+
+    // Switch back to Student Tab
+    await page.getByRole('button', { name: /Rekap Presensi Siswa/i }).click();
+    await expect(page.getByText('Total Siswa Terdaftar')).toBeVisible();
   });
 
   test('User & Officer Management and Excel Import Modal', async ({ page }) => {

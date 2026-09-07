@@ -66,6 +66,7 @@ Route::middleware('auth')->group(function () {
     // Laporan Bulanan (FR-08)
     Route::get('/reports/monthly', [ReportController::class, 'monthly'])->name('reports.monthly');
     Route::get('/reports/monthly/export-excel', [ReportController::class, 'exportExcel'])->name('reports.monthly.export');
+    Route::get('/reports/monthly/officers/export-excel', [ReportController::class, 'exportOfficerExcel'])->name('reports.monthly.officers.export');
 
     // Profil Pengguna
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
