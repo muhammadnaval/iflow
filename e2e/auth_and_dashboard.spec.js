@@ -35,12 +35,26 @@ test.describe('Authentication & Dashboard Realtime Flow', () => {
     const rows = page.locator('table tbody tr');
     expect(await rows.count()).toBeGreaterThan(0);
 
-    // 6. Test Class Filter
-    const classSelect = page.locator('select').first();
+    // 6. Test Class & Officer Filters
+    const classSelect = page.locator('select[aria-label="Filter Kelas"]');
+    await expect(classSelect).toBeVisible();
     await classSelect.selectOption('VII-A');
     await page.waitForTimeout(300);
+    await classSelect.selectOption('ALL');
 
-    // 7. Test Correction Button & Modal
+    const officerSelect = page.locator('select[aria-label="Filter Petugas"]');
+    await expect(officerSelect).toBeVisible();
+
+    // 7. Verify Pagination Controls & Per-Page selector
+    const perPageSelect = page.locator('select[aria-label="Jumlah per halaman"]');
+    if (await perPageSelect.isVisible()) {
+      await expect(page.getByText(/Menampilkan/i)).toBeVisible();
+      await perPageSelect.selectOption('25');
+      await page.waitForTimeout(200);
+      await perPageSelect.selectOption('10');
+    }
+
+    // 8. Test Correction Button & Modal
     const koreksiBtn = page.getByRole('button', { name: /Koreksi/i }).first();
     if (await koreksiBtn.isVisible()) {
       await koreksiBtn.click();

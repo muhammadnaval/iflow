@@ -17,7 +17,9 @@ import {
     Trash2,
     AlertTriangle,
     X,
-    ShieldCheck
+    ShieldCheck,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -48,7 +50,10 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
     const [scans, setScans] = useState(initialScans || stats?.recent_scans || []);
     const [selectedScan, setSelectedScan] = useState(scans[0] || null);
     const [selectedClass, setSelectedClass] = useState('ALL');
+    const [selectedOfficer, setSelectedOfficer] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(null);
 
@@ -140,14 +145,63 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
         });
     };
 
-    // Filter Scans by Class and Search query
+    // Unique officers list from scans
+    const availableOfficers = Array.from(
+        new Set(scans.map((s) => s.scanned_by).filter(Boolean))
+    ).sort();
+
+    // Filter Scans by Class, Officer, and Search query
     const filteredScans = scans.filter((scan) => {
         const matchesClass = selectedClass === 'ALL' || scan.class === selectedClass;
+        const matchesOfficer = selectedOfficer === 'ALL' || scan.scanned_by === selectedOfficer;
         const matchesQuery =
             scan.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             scan.nisn.includes(searchQuery);
-        return matchesClass && matchesQuery;
+        return matchesClass && matchesOfficer && matchesQuery;
     });
+
+    const totalItems = filteredScans.length;
+    const isAll = perPage === 'ALL';
+    const effectivePerPage = isAll ? Math.max(1, totalItems) : Number(perPage);
+    const totalPages = Math.max(1, Math.ceil(totalItems / effectivePerPage));
+    const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (safeCurrentPage - 1) * effectivePerPage;
+    const endIndex = isAll ? totalItems : Math.min(startIndex + effectivePerPage, totalItems);
+    const paginatedScans = isAll ? filteredScans : filteredScans.slice(startIndex, endIndex);
+
+    const getPageNumbers = (current, total) => {
+        if (total <= 7) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+        }
+        if (current <= 4) {
+            return [1, 2, 3, 4, 5, '...', total];
+        }
+        if (current >= total - 3) {
+            return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+        }
+        return [1, '...', current - 1, current, current + 1, '...', total];
+    };
+
+    const handleClassChange = (e) => {
+        setSelectedClass(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleOfficerChange = (e) => {
+        setSelectedOfficer(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handlePerPageChange = (e) => {
+        const val = e.target.value === 'ALL' ? 'ALL' : Number(e.target.value);
+        setPerPage(val);
+        setCurrentPage(1);
+    };
 
     return (
         <AuthenticatedLayout
@@ -314,13 +368,13 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
                             </div>
 
                             {/* Filters Bar */}
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex-1 sm:w-48">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="relative flex-1 sm:w-44">
                                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
                                     <input
                                         type="text"
                                         value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onChange={handleSearchChange}
                                         placeholder="Cari siswa / NISN..."
                                         className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border-madrasah-border focus:border-brand-primary focus:ring-brand-primary"
                                     />
@@ -328,13 +382,25 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
 
                                 <select
                                     value={selectedClass}
-                                    onChange={(e) => setSelectedClass(e.target.value)}
+                                    onChange={handleClassChange}
                                     aria-label="Filter Kelas"
                                     className="py-1 px-2.5 text-xs rounded-lg border-madrasah-border focus:border-brand-primary focus:ring-brand-primary bg-stone-50 font-medium"
                                 >
                                     <option value="ALL">Semua Kelas</option>
                                     {classOptions.map((cls) => (
                                         <option key={cls} value={cls}>{cls}</option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={selectedOfficer}
+                                    onChange={handleOfficerChange}
+                                    aria-label="Filter Petugas"
+                                    className="py-1 px-2.5 text-xs rounded-lg border-madrasah-border focus:border-brand-primary focus:ring-brand-primary bg-stone-50 font-medium max-w-[140px] sm:max-w-[180px] truncate"
+                                >
+                                    <option value="ALL">Semua Petugas</option>
+                                    {availableOfficers.map((officer) => (
+                                        <option key={officer} value={officer}>{officer}</option>
                                     ))}
                                 </select>
                             </div>
@@ -353,7 +419,7 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-madrasah-border/60 font-sans">
-                                    {filteredScans.length === 0 ? (
+                                    {paginatedScans.length === 0 ? (
                                         <tr>
                                             <td colSpan="5" className="py-10 text-center">
                                                 <div className="flex flex-col items-center justify-center max-w-xs mx-auto text-center">
@@ -368,7 +434,7 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredScans.map((scan) => {
+                                        paginatedScans.map((scan) => {
                                             const isSelected = selectedScan?.id === scan.id;
                                             return (
                                                 <tr
@@ -389,8 +455,13 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
                                                     <td className="py-3 px-3 font-semibold text-stone-700">
                                                         {scan.class}
                                                     </td>
-                                                    <td className="py-3 px-3 font-mono text-stone-600">
-                                                        {scan.scanned_at}
+                                                    <td className="py-3 px-3">
+                                                        <div className="font-mono text-stone-700 font-semibold">
+                                                            {scan.scanned_at}
+                                                        </div>
+                                                        <div className="text-[10px] text-stone-500 font-medium truncate max-w-[130px]" title={scan.scanned_by || 'Petugas Piket'}>
+                                                            Oleh: {scan.scanned_by || 'Petugas Piket'}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3 px-3">
                                                         <StatusBadge status={scan.status} size="sm" />
@@ -413,6 +484,95 @@ export default function Dashboard({ auth, stats, initialScans = [], availableCla
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Pagination Controls */}
+                        {totalItems > 0 && (
+                            <div className="pt-3 mt-auto border-t border-madrasah-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-madrasah-muted">
+                                <div className="flex items-center gap-3">
+                                    <span>
+                                        Menampilkan <b className="text-stone-800">{isAll ? 1 : (startIndex + 1)}</b> – <b className="text-stone-800">{endIndex}</b> dari <b className="text-stone-800">{totalItems}</b> presensi
+                                    </span>
+
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[11px] text-stone-400">Baris:</span>
+                                        <select
+                                            value={perPage}
+                                            onChange={handlePerPageChange}
+                                            aria-label="Jumlah per halaman"
+                                            className="py-0.5 px-2 text-xs rounded-md border-stone-300 bg-stone-50 font-semibold text-stone-700 focus:ring-brand-primary"
+                                        >
+                                            <option value={10}>10</option>
+                                            <option value={25}>25</option>
+                                            <option value={50}>50</option>
+                                            <option value={100}>100</option>
+                                            <option value="ALL">Semua</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {!isAll && totalPages > 1 && (
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                            disabled={safeCurrentPage === 1}
+                                            aria-label="Halaman sebelumnya"
+                                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
+                                                safeCurrentPage === 1
+                                                    ? 'opacity-40 cursor-not-allowed bg-stone-100 text-stone-400 border-stone-200'
+                                                    : 'bg-white text-stone-700 hover:bg-stone-100 border-stone-200 cursor-pointer'
+                                            }`}
+                                        >
+                                            <ChevronLeft className="w-3.5 h-3.5" />
+                                            <span className="hidden sm:inline">Sebelumnya</span>
+                                        </button>
+
+                                        <div className="flex items-center gap-1">
+                                            {getPageNumbers(safeCurrentPage, totalPages).map((pageNum, idx) => {
+                                                if (pageNum === '...') {
+                                                    return (
+                                                        <span key={`ellipsis-${idx}`} className="px-1 text-stone-400 font-bold select-none">
+                                                            ...
+                                                        </span>
+                                                    );
+                                                }
+
+                                                const isActive = pageNum === safeCurrentPage;
+                                                return (
+                                                    <button
+                                                        key={pageNum}
+                                                        type="button"
+                                                        onClick={() => setCurrentPage(pageNum)}
+                                                        className={`min-w-7 h-7 px-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                            isActive
+                                                                ? 'bg-brand-primary text-white shadow-xs'
+                                                                : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200'
+                                                        }`}
+                                                    >
+                                                        {pageNum}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                            disabled={safeCurrentPage === totalPages}
+                                            aria-label="Halaman selanjutnya"
+                                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
+                                                safeCurrentPage === totalPages
+                                                    ? 'opacity-40 cursor-not-allowed bg-stone-100 text-stone-400 border-stone-200'
+                                                    : 'bg-white text-stone-700 hover:bg-stone-100 border-stone-200 cursor-pointer'
+                                            }`}
+                                        >
+                                            <span className="hidden sm:inline">Selanjutnya</span>
+                                            <ChevronRight className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Detail: Selected Student Panel */}
