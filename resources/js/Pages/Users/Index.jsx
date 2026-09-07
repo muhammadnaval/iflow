@@ -18,7 +18,9 @@ import {
     RefreshCw,
     X,
     BookOpen,
-    Pencil
+    Pencil,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 
 const DEFAULT_AVAILABLE_CLASSES = [
@@ -31,6 +33,8 @@ const DEFAULT_AVAILABLE_CLASSES = [
 export default function UsersIndex({ auth, usersList = [], availableClasses }) {
     const classList = availableClasses && availableClasses.length > 0 ? availableClasses : DEFAULT_AVAILABLE_CLASSES;
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
     const [modalOpen, setModalOpen] = useState(false);
     
     // Create Form state
@@ -66,6 +70,36 @@ export default function UsersIndex({ auth, usersList = [], availableClasses }) {
         u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const totalItems = filteredUsers.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+    const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (safeCurrentPage - 1) * perPage;
+    const endIndex = Math.min(startIndex + perPage, totalItems);
+    const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handlePerPageChange = (e) => {
+        setPerPage(Number(e.target.value));
+        setCurrentPage(1);
+    };
+
+    const getPageNumbers = (current, total) => {
+        if (total <= 7) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+        }
+        if (current <= 4) {
+            return [1, 2, 3, 4, 5, '...', total];
+        }
+        if (current >= total - 3) {
+            return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+        }
+        return [1, '...', current - 1, current, current + 1, '...', total];
+    };
 
     const toggleStatus = (id) => {
         router.post(route('admin.users.toggle', id), {}, {
@@ -258,7 +292,7 @@ export default function UsersIndex({ auth, usersList = [], availableClasses }) {
                         <input
                             type="text"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={handleSearchChange}
                             placeholder="Cari nama pengguna atau email..."
                             className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border-madrasah-border focus:ring-brand-primary"
                         />
@@ -289,7 +323,7 @@ export default function UsersIndex({ auth, usersList = [], availableClasses }) {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredUsers.map((user) => {
+                                paginatedUsers.map((user) => {
                                     const isCurrentAuth = auth?.user?.id === user.id;
 
                                     return (
@@ -380,6 +414,100 @@ export default function UsersIndex({ auth, usersList = [], availableClasses }) {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination Footer */}
+                    <div className="bg-stone-50 border-t border-madrasah-border px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
+                            <div className="flex items-center gap-1.5 text-stone-600">
+                                <span>Tampilkan</span>
+                                <select
+                                    value={perPage}
+                                    onChange={handlePerPageChange}
+                                    aria-label="Pilih jumlah baris per halaman"
+                                    className="py-1 px-2 text-xs rounded-lg border-madrasah-border bg-white font-bold text-stone-700 focus:ring-brand-primary"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                </select>
+                                <span>per halaman</span>
+                            </div>
+
+                            <span className="text-stone-300 font-medium hidden sm:inline">|</span>
+
+                            <span className="text-stone-600 font-medium">
+                                {totalItems > 0 ? (
+                                    <>
+                                        Menampilkan <b className="font-mono text-stone-900">{startIndex + 1}</b>–<b className="font-mono text-stone-900">{endIndex}</b> dari <b className="font-mono text-stone-900">{totalItems}</b> pengguna
+                                    </>
+                                ) : (
+                                    '0 pengguna'
+                                )}
+                            </span>
+                        </div>
+
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={safeCurrentPage === 1}
+                                    aria-label="Halaman sebelumnya"
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                                        safeCurrentPage === 1
+                                            ? 'opacity-40 cursor-not-allowed bg-stone-100 text-stone-400 border-stone-200'
+                                            : 'bg-white text-stone-700 hover:bg-stone-100 border-stone-200 cursor-pointer'
+                                    }`}
+                                >
+                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Sebelumnya</span>
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                    {getPageNumbers(safeCurrentPage, totalPages).map((pageNum, idx) => {
+                                        if (pageNum === '...') {
+                                            return (
+                                                <span key={`ellipsis-${idx}`} className="px-1.5 text-stone-400 font-bold select-none">
+                                                    ...
+                                                </span>
+                                            );
+                                        }
+
+                                        const isActive = pageNum === safeCurrentPage;
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                type="button"
+                                                onClick={() => setCurrentPage(pageNum)}
+                                                className={`min-w-8 h-8 px-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                    isActive
+                                                        ? 'bg-brand-primary text-white shadow-xs'
+                                                        : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={safeCurrentPage === totalPages}
+                                    aria-label="Halaman selanjutnya"
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                                        safeCurrentPage === totalPages
+                                            ? 'opacity-40 cursor-not-allowed bg-stone-100 text-stone-400 border-stone-200'
+                                            : 'bg-white text-stone-700 hover:bg-stone-100 border-stone-200 cursor-pointer'
+                                    }`}
+                                >
+                                    <span className="hidden sm:inline">Selanjutnya</span>
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
