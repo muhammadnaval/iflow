@@ -92,7 +92,7 @@ class AcademicYearController extends Controller
         $validated = $request->validate([
             'presence_start_time' => 'required|string',
             'presence_end_time' => 'required|string',
-            'late_tolerance_minutes' => 'required|integer|min:0|max:120',
+            'late_tolerance_minutes' => 'required|integer|min:0|max:240',
         ]);
 
         $this->academicYearService->updateTimeWindow(

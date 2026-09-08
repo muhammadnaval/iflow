@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import StatusBadge from '@/Components/UI/StatusBadge';
@@ -8,7 +8,8 @@ import {
     Plus,
     CheckCircle2,
     Save,
-    Archive
+    Archive,
+    AlertTriangle
 } from 'lucide-react';
 
 export default function AcademicYearsIndex({ auth, academicYears = [] }) {
@@ -23,9 +24,33 @@ export default function AcademicYearsIndex({ auth, academicYears = [] }) {
     // Time Window Form State
     const [startTime, setStartTime] = useState(activeYear.presence_start_time || '11:45');
     const [endTime, setEndTime] = useState(activeYear.presence_end_time || '12:30');
-    const [lateTolerance, setLateTolerance] = useState(activeYear.late_tolerance_minutes || 15);
+    const [lateTolerance, setLateTolerance] = useState(activeYear.late_tolerance_minutes ?? 15);
     const [isSavedAlert, setIsSavedAlert] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Calculate threshold clock time dynamically
+    const thresholdTime = useMemo(() => {
+        if (!startTime) return '';
+        const parts = startTime.split(':');
+        if (parts.length < 2) return '';
+        const h = parseInt(parts[0], 10) || 0;
+        const m = parseInt(parts[1], 10) || 0;
+        const totalMinutes = h * 60 + m + (parseInt(lateTolerance, 10) || 0);
+        const newH = Math.floor(totalMinutes / 60) % 24;
+        const newM = totalMinutes % 60;
+        return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+    }, [startTime, lateTolerance]);
+
+    // Check if tolerance reaches or exceeds end time
+    const isToleranceExceedingEnd = useMemo(() => {
+        if (!startTime || !endTime) return false;
+        const [sh, sm] = startTime.split(':').map((v) => parseInt(v, 10) || 0);
+        const [eh, em] = endTime.split(':').map((v) => parseInt(v, 10) || 0);
+        const startMins = sh * 60 + sm;
+        const endMins = eh * 60 + em;
+        const thresholdMins = startMins + (parseInt(lateTolerance, 10) || 0);
+        return thresholdMins >= endMins;
+    }, [startTime, endTime, lateTolerance]);
 
     // New Year Modal
     const [modalOpen, setModalOpen] = useState(false);
@@ -37,10 +62,13 @@ export default function AcademicYearsIndex({ auth, academicYears = [] }) {
         e.preventDefault();
         setIsSubmitting(true);
 
+        const formattedStart = startTime.length === 5 ? startTime + ':00' : startTime;
+        const formattedEnd = endTime.length === 5 ? endTime + ':00' : endTime;
+
         router.post(route('admin.academic-years.time-window', activeYear.id), {
-            presence_start_time: startTime + ':00',
-            presence_end_time: endTime + ':00',
-            late_tolerance_minutes: parseInt(lateTolerance),
+            presence_start_time: formattedStart,
+            presence_end_time: formattedEnd,
+            late_tolerance_minutes: parseInt(lateTolerance, 10) || 0,
         }, {
             onSuccess: () => {
                 setIsSavedAlert(true);
@@ -152,7 +180,7 @@ export default function AcademicYearsIndex({ auth, academicYears = [] }) {
                                     <input
                                         type="number"
                                         min="0"
-                                        max="60"
+                                        max="240"
                                         value={lateTolerance}
                                         onChange={(e) => setLateTolerance(e.target.value)}
                                         className="w-full text-sm font-mono font-bold rounded-lg border-madrasah-border focus:ring-brand-primary focus:border-brand-primary py-2 pr-12"
@@ -163,7 +191,9 @@ export default function AcademicYearsIndex({ auth, academicYears = [] }) {
                                     </span>
                                 </div>
                                 <span className="text-[11px] text-stone-500 mt-1.5 flex flex-wrap items-center gap-1.5">
-                                    <span>Lewat batas toleransi (+{lateTolerance} mnt)</span>
+                                    <span>
+                                        Lewat batas toleransi {thresholdTime && <strong className="text-stone-700 font-mono font-semibold">({thresholdTime} WIB)</strong>} (+{lateTolerance} mnt)
+                                    </span>
                                     <span className="text-stone-400 font-bold">→</span>
                                     <span className="font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px]">
                                         Tercatat TERLAMBAT
@@ -191,6 +221,20 @@ export default function AcademicYearsIndex({ auth, academicYears = [] }) {
                                 </span>
                             </div>
                         </div>
+
+                        {isToleranceExceedingEnd && (
+                            <div className="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 flex items-start gap-3 text-xs text-amber-900 leading-relaxed shadow-2xs">
+                                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="font-bold text-amber-950">
+                                        Perhatian: Batas toleransi ({thresholdTime} WIB) mencapai atau melewati Waktu Akhir Presensi ({endTime} WIB).
+                                    </p>
+                                    <p className="text-amber-900/90 text-[11px]">
+                                        Dengan konfigurasi ini, siswa yang scan sebelum pukul {endTime} WIB akan selalu berstatus <span className="font-semibold text-emerald-800">HADIR</span>, dan setelah pukul {endTime} WIB akan langsung <span className="font-semibold text-rose-800">DITOLAK (DITUTUP)</span>. Status <span className="font-semibold text-amber-800">TERLAMBAT</span> tidak akan pernah tercapai kecuali Waktu Akhir Presensi dimundurkan melewati batas toleransi ({thresholdTime} WIB).
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex justify-end">
                             <button
